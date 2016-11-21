@@ -23,8 +23,9 @@ If you never used C# or any programming language before, learn that first and co
 Create a new project of type <code>Class Library</code> (.dll).
 
 You will need to reference the RaccoonBot application (.exe), Core.dll, and Shared.dll.  All of these can be found in the bots main folder.
-The two example projects inside the bots <code>addons</code> folder already contains completely projects which are used in the bot already;
-so you can use these as a guide as well.
+The example projects inside the bots <code>addons</code> folder already contain completed projects which are used in the bot already;
+so you can use these as a guide as well. You can find it's sourcecode here at github: 
+<a href='https://github.com/inkredible-raccoonbot/RaccoonBot-Attack-Algorithms'>https://github.com/inkredible-raccoonbot/RaccoonBot-Attack-Algorithms</a>
 
 Obviously, it's also possible to just copy-paste one of the existing projects and rename everything.
 
@@ -41,12 +42,14 @@ See the information below for how thats done.
 ## Addon
 
 In order for your addon to be picked up by the bot, you must include the Addon attribute in the assembly namespace.
-The class you define must also inherit from BaseAttack and have a special attribute (AttackAlgorithm)
+One addon can contain one or multiple attack algorithms.
+The class you define must also inherit from BaseAttack and have a special attribute (AttackAlgorithm).
 
 ### Contructor
 
 ```c#
-[assembly: Addon("Nameof Addon", "This is a sample addon", "RaccoonBot Team")]
+[assembly: Addon("SmartAirDeploy", "Several different attack strategies for Air Units", "Inkredible")]
+namespace SmartAirDeploy
 ```
 
 `assembly: Addon(string addonName, string description, string author)`
@@ -69,7 +72,8 @@ For each algorithm, you must in include the AttackAlgorithm Attribute on your cl
 ### Constructor
 
 ```c#
-[AttackAlgorithm("MyDeploy", "Deploys units in a smiley face pattern.")]
+[AttackAlgorithm("Smart Air Deploy", "Handles several air troop compositions differently and is capable of using spells")]
+public class SmartAirDeploy : BaseAttack
 ```
 
 `AttackAlgorithm(string name, string description)`
@@ -92,13 +96,15 @@ When implementing BaseAttack, add the following methods
 ## Initial Constructor
 
 ```c#
-public class MyAlgorithm(BaseStats baseStats): base(baseStats){}
+public SmartAirDeploy(Opponent opponent) : base(opponent){}
 ```
 
-Your BaseAttack class will accept a <code>BaseStats</code> parameter.
+Your BaseAttack class will accept a <code>Opponent</code> parameter.
 
 BaseStats is a class that contains various settings from the user,
 as well as the current Gold/Elixir/DarkElixir the base which is being attacked has.
+If you don't want to implement a specific handling which is dependent on the lootable resources
+you can leave the method body blank.
 
 ## ToString
 
@@ -113,11 +119,37 @@ This returns the name of your deployment. This is used to display the name that 
 
 ## ShouldAccept
 
+```c#
+public override double ShouldAccept()
+{
+    if (Opponent.MeetsRequirements(BaseRequirements.All))
+		return 1;
+    return 0;
+}
+```
+
 <code>public override double ShouldAccept()</code>
 
-The <code>ShouldAccept</code> method returns a double, which is the score of how successful your algorithm believes it will be, ranging from 0 to 1
+The <code>ShouldAccept</code> method returns a double, which is the score of how successful your algorithm believes it will be, ranging from 0 to 1.
+If an user has selected multiple attack algorithms the bot will chose the algorithm with the highest returned value. You also need to check if
+the current base meets all the user's minimum attack requirements.
 
 ## AttackRoutine
+
+```c#
+public override IEnumerable<int> AttackRoutine()
+{
+    Log.Info("[Smart Air Deploy] Attack start");
+
+    // Get all the units available
+    Log.Debug("Scanning troops");
+
+    // Get a list of all deployable units
+    var deployElements = Deploy.GetTroops();
+
+	yield break;
+}
+```
 
 <code>public override IEnumerable&lt;int&gt; AttackRoutine()</code>
 
@@ -300,7 +332,34 @@ if (attackUnits.Any())
 
 ## Surrendering Early
 
+```c#
+if (surrenderOnFirstStar && minAttackTime.IsFinished && SurrenderIfWeHaveAStar())
+{
+    yield return 500;
+    yield break;
+}
+```
+
+Check regularly if the user has set the option to surrender early and whether the conditions to surrender early are met now, by
+calling `SurrenderIfWeHaveAStar()`. If this function returns true you need to `yield break;` your attack routine.
+
 ## Using Heroes
+```c#
+// get a list of all deployable units
+var deployElements = Deploy.GetTroops();
+
+// extract heores into their own list
+var heroes = deployElements.Extract(u => u.IsHero);
+
+Log.Info($"[Smart Air Deploy] Deploying {queen.PrettyName}");
+foreach (var t in Deploy.AtPoint(queen, _qwPoint, waveDelay: waveDelay))
+    yield return t;
+
+// Add Queen to watchlist, so that the bot will activate the hero abilities if life drops low
+Deploy.WatchHeroes(new List<DeployElement> { queen });
+```
+
+
 
 # PluginBase Class
 

@@ -291,7 +291,7 @@ The `RedPoints` property will get a list with all points the go around the targe
 	
 ```c#
 //get the deploy elements that have unit data
-var deployElements = GetAvailableDeployElements().Where(x => x.UnitData != null);
+var deployElements = Deploy.GetTroops().Where(x => x.UnitData != null);
 
 //get only the tank units from the deploy elements
 var tankUnits = deployElements.Where(x => x.ElementType == DeployElementType.NormalUnit && x.UnitData.AttackType == AttackType.Tank).ToArray();
@@ -303,7 +303,7 @@ var attackUnits = deployElements.Where(x => x.ElementType == DeployElementType.N
 var healUnits = deployElements.Where(x => x.ElementType == DeployElementType.NormalUnit && x.UnitData.AttackType == AttackType.Heal).ToArray();
 ```
 
-`GetAvailableDeployElements` returns a list of the troops and spells currently available to deploy using the DeployElement object. You can use `linq` to filter this list into certain troops.
+`Deploy.GetTroops()` returns a list of the troops and spells currently available to deploy using the DeployElement object. You can use `linq` to filter this list into certain troops.
 
 
 ## Deploying units
